@@ -184,6 +184,25 @@ module Restforce
       #
       # Returns the String Id of the newly created sobject.
       # Raises exceptions if an error is returned from Salesforce.
+      def retrieve_updates(sobject, start_date, end_date = Time.now)
+        attr = {start: start_date.iso8601, end: end_date.iso8601}
+        api_get("sobjects/#{sobject}/updated", attrs).body['ids']
+      end
+      alias_method :insert!, :create!
+
+      # Public: Insert a new record.
+      #
+      # sobject - String name of the sobject.
+      # attrs   - Hash of attributes to set on the new record.
+      #
+      # Examples
+      #
+      #   # Add a new account
+      #   client.create!('Account', Name: 'Foobar Inc.')
+      #   # => '0016000000MRatd'
+      #
+      # Returns the String Id of the newly created sobject.
+      # Raises exceptions if an error is returned from Salesforce.
       def create!(sobject, attrs)
         api_post("sobjects/#{sobject}", attrs).body['id']
       end
