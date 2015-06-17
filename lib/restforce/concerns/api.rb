@@ -172,23 +172,24 @@ module Restforce
       end
       alias_method :insert, :create
 
-      # Public: Insert a new record.
+      # Public: Get list of Ids for objects updated during time period.
       #
       # sobject - String name of the sobject.
-      # attrs   - Hash of attributes to set on the new record.
+      # start_date - Time object, up to 30 days ago
+      # end_dat - Up to date, defaults to now
       #
       # Examples
       #
       #   # Add a new account
-      #   client.create!('Account', Name: 'Foobar Inc.')
-      #   # => '0016000000MRatd'
+      #   client.retrieve_updated_ids('Account', Time.now - 7.days)
+      #   # => ['0016000000MRatd', '0015000000MRatd', '0017000000MRatd']
       #
-      # Returns the String Id of the newly created sobject.
+      # Returns array of String Id of the updated objects during the time period.
       # Raises exceptions if an error is returned from Salesforce.
-      def retrieve_updates(sobject, start_date, end_date = Time.now)
-        attrs = {start: CGI::escape(start_date.iso8601), end: CGI::escape(end_date.iso8601)}
-        api_get("sobjects/#{sobject}/updated", attrs).body['ids']
+      def retrieve_updated_ids(sobject, start_date, end_date = Time.now)
+        get(api_path "sobjects/#{sobject}/updated?start= #{CGI::escape(start_date.iso8601)}&end=#{CGI::escape(end_date.iso8601)}").body['ids']
       end
+
 
       # Public: Insert a new record.
       #
@@ -349,7 +350,7 @@ module Restforce
       end
 
 
-    private
+
 
       # Internal: Returns a path to an api endpoint
       #
@@ -361,6 +362,7 @@ module Restforce
         "/services/data/v#{options[:api_version]}/#{path}"
       end
 
+      private
       # Internal: Errors that should be rescued from in non-bang methods
       def exceptions
         [Faraday::Error::ClientError]
