@@ -1,4 +1,5 @@
 require 'restforce/concerns/verbs'
+require 'cgi'
 
 module Restforce
   module Concerns
@@ -185,7 +186,7 @@ module Restforce
       # Returns the String Id of the newly created sobject.
       # Raises exceptions if an error is returned from Salesforce.
       def retrieve_updates(sobject, start_date, end_date = Time.now)
-        attrs = {start: URI::escape(start_date.iso8601.to_s), end: URI::escape(end_date.iso8601.to_s)}
+        attrs = {start: CGI::escape(start_date.iso8601), end: CGI::escape(end_date.iso8601)}
         api_get("sobjects/#{sobject}/updated", attrs).body['ids']
       end
 
