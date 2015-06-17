@@ -188,7 +188,6 @@ module Restforce
         attr = {start: start_date.iso8601, end: end_date.iso8601}
         api_get("sobjects/#{sobject}/updated", attrs).body['ids']
       end
-      alias_method :insert!, :create!
 
       # Public: Insert a new record.
       #
