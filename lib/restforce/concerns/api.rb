@@ -187,7 +187,9 @@ module Restforce
       # Returns array of String Id of the updated objects during the time period.
       # Raises exceptions if an error is returned from Salesforce.
       def retrieve_updated_ids(sobject, start_date, end_date = Time.now)
-        get(api_path "sobjects/#{sobject}/updated?start= #{CGI::escape(start_date.iso8601)}&end=#{CGI::escape(end_date.iso8601)}").body['ids']
+        url = api_path "sobjects/#{sobject}/updated?start= #{CGI::escape(start_date.iso8601)}&end=#{CGI::escape(end_date.iso8601)}"
+        puts url
+        get(url).body['ids']
       end
 
 
