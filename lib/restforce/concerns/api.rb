@@ -185,7 +185,7 @@ module Restforce
       # Returns the String Id of the newly created sobject.
       # Raises exceptions if an error is returned from Salesforce.
       def retrieve_updates(sobject, start_date, end_date = Time.now)
-        attrs = {start: URI::encode(start_date.iso8601), end: URI::encode(end_date.iso8601)}
+        attrs = {start: URI::escape(start_date.iso8601.to_s), end: URI::escape(end_date.iso8601.to_s)}
         api_get("sobjects/#{sobject}/updated", attrs).body['ids']
       end
 
