@@ -180,7 +180,7 @@ module Restforce
       #
       # Examples
       #
-      #   # Add a new account
+      #   # Get changed accounts
       #   client.retrieve_updated_ids('Account', Time.now - 7.days)
       #   # => ['0016000000MRatd', '0015000000MRatd', '0017000000MRatd']
       #
@@ -188,8 +188,26 @@ module Restforce
       # Raises exceptions if an error is returned from Salesforce.
       def retrieve_updated_ids(sobject, start_date, end_date = Time.now)
         url = api_path "sobjects/#{sobject}/updated?start=#{CGI::escape(start_date.iso8601)}&end=#{CGI::escape(end_date.iso8601)}"
-        puts url
         get(url).body['ids']
+      end
+
+      # Public: Get list of Ids for objects deleted during time period.
+      #
+      # sobject - String name of the sobject.
+      # start_date - Time object, up to 30 days ago
+      # end_dat - Up to date, defaults to now
+      #
+      # Examples
+      #
+      #   # Get deleted accounts
+      #   client.retrieve_deleted_ids('Account', Time.now - 7.days)
+      #   # => ['0016000000MRatd', '0015000000MRatd', '0017000000MRatd']
+      #
+      # Returns array of String Id of the deleted objects during the time period.
+      # Raises exceptions if an error is returned from Salesforce.
+      def retrieve_deleted_ids(sobject, start_date, end_date = Time.now)
+        url = api_path "sobjects/#{sobject}/deleted?start=#{CGI::escape(start_date.iso8601)}&end=#{CGI::escape(end_date.iso8601)}"
+        get(url).body.deletedRecords.map{|r| r.id}
       end
 
 
