@@ -1,11 +1,11 @@
 module Restforce
-  class Attachment < Restforce::SObject
-    # Public: Returns the body of the attachment.
+  class Document < Restforce::SObject
+    # Public: Returns the body of the document.
     #
     # Examples
     #
-    #   attachment = client.query('select Id, Name, Body from Attachment').first
-    #   File.open(attachment.Name, 'wb') { |f| f.write(attachment.Body) }
+    #   document = client.query('select Id, Name, Body from Document').first
+    #   File.open(document.Name, 'wb') { |f| f.write(document.Body) }
     def Body
       ensure_id && ensure_body
       @client.get(super).body

@@ -5,7 +5,7 @@ describe Restforce::Mash do
     subject { described_class.build(input, nil) }
 
     context 'when array' do
-      let(:input) { [{ :foo => 'hello' }, { :bar => 'world' }] }
+      let(:input) { [{ foo: 'hello' }, { bar: 'world' }] }
       it { should be_all { |obj| expect(obj).to be_a Restforce::Mash } }
     end
   end
@@ -25,6 +25,11 @@ describe Restforce::Mash do
       context 'when the sobject type is an Attachment' do
         let(:input) { { 'attributes' => { 'type' => 'Attachment' } } }
         it { should eq Restforce::Attachment }
+      end
+
+      context 'when the sobject type is a Document' do
+        let(:input) { { 'attributes' => { 'type' => 'Document' } } }
+        it { should eq Restforce::Document }
       end
     end
 

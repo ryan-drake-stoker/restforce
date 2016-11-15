@@ -11,6 +11,7 @@ module Restforce
   autoload :Collection,     'restforce/collection'
   autoload :Middleware,     'restforce/middleware'
   autoload :Attachment,     'restforce/attachment'
+  autoload :Document,       'restforce/document'
   autoload :UploadIO,       'restforce/upload_io'
   autoload :SObject,        'restforce/sobject'
   autoload :Client,         'restforce/client'
@@ -37,23 +38,25 @@ module Restforce
   end
 
   Error               = Class.new(StandardError)
+  ServerError         = Class.new(Error)
   AuthenticationError = Class.new(Error)
   UnauthorizedError   = Class.new(Error)
+  APIVersionError     = Class.new(Error)
 
   class << self
     # Alias for Restforce::Data::Client.new
     #
     # Shamelessly pulled from https://github.com/pengwynn/octokit/blob/master/lib/octokit.rb
-    def new(*args)
-      data(*args)
+    def new(*args, &block)
+      data(*args, &block)
     end
 
-    def data(*args)
-      Restforce::Data::Client.new(*args)
+    def data(*args, &block)
+      Restforce::Data::Client.new(*args, &block)
     end
 
-    def tooling(*args)
-      Restforce::Tooling::Client.new(*args)
+    def tooling(*args, &block)
+      Restforce::Tooling::Client.new(*args, &block)
     end
 
     # Helper for decoding signed requests.
@@ -70,4 +73,10 @@ module Restforce
     end
   end
   Object.send :include, Restforce::CoreExtensions unless Object.respond_to? :tap
+end
+
+if ENV['PROXY_URI']
+  warn "[restforce] You must now use the SALESFORCE_PROXY_URI environment variable (as " \
+       "opposed to PROXY_URI) to set a proxy server for Restforce. Please update your " \
+       "environment's configuration."
 end

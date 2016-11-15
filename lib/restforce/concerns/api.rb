@@ -1,3 +1,4 @@
+require 'uri'
 require 'restforce/concerns/verbs'
 require 'cgi'
 
@@ -56,6 +57,55 @@ module Restforce
         describe.collect { |sobject| sobject['name'] }
       end
 
+      # Public: Get info about limits in the connected organization
+      #
+      # Only available in version 29.0 and later of the Salesforce API.
+      #
+      # Returns an Array of String names for each SObject.
+      def limits
+        version_guard(29.0) { api_get("limits").body }
+      end
+
+      # Public: Gets the IDs of sobjects of type [sobject]
+      # which have changed between startDateTime and endDateTime.
+      #
+      # Examples
+      #
+      #   # get changes for sobject Whizbang between yesterday and today
+      #   startDate = Time.new(2002, 10, 31, 2, 2, 2, "+02:00")
+      #   endDate = Time.new(2002, 11, 1, 2, 2, 2, "+02:00")
+      #   client.get_updated('Whizbang', startDate, endDate)
+      #
+      # Returns a Restforce::Collection if Restforce.configuration.mashify is true.
+      # Returns an Array of Hash for each record in the result if
+      # Restforce.configuration.mashify is false.
+      def get_updated(sobject, start_time, end_time)
+        start_time = start_time.utc.iso8601
+        end_time = end_time.utc.iso8601
+        url = "/sobjects/#{sobject}/updated/?start=#{start_time}&end=#{end_time}"
+        api_get(url).body
+      end
+
+      # Public: Gets the IDs of sobjects of type [sobject]
+      # which have been deleted between startDateTime and endDateTime.
+      #
+      # Examples
+      #
+      #   # get deleted sobject Whizbangs between yesterday and today
+      #   startDate = Time.new(2002, 10, 31, 2, 2, 2, "+02:00")
+      #   endDate = Time.new(2002, 11, 1, 2, 2, 2, "+02:00")
+      #   client.get_deleted('Whizbang', startDate, endDate)
+      #
+      # Returns a Restforce::Collection if Restforce.configuration.mashify is true.
+      # Returns an Array of Hash for each record in the result if
+      # Restforce.configuration.mashify is false.
+      def get_deleted(sobject, start_time, end_time)
+        start_time = start_time.utc.iso8601
+        end_time = end_time.utc.iso8601
+        url = "/sobjects/#{sobject}/deleted/?start=#{start_time}&end=#{end_time}"
+        api_get(url).body
+      end
+
       # Public: Returns a detailed describe result for the specified sobject
       #
       # sobject - Stringish name of the sobject (default: nil).
@@ -73,7 +123,7 @@ module Restforce
       # Returns the Hash representation of the describe call.
       def describe(sobject = nil)
         if sobject
-          api_get("sobjects/#{sobject.to_s}/describe").body
+          api_get("sobjects/#{sobject}/describe").body
         else
           api_get('sobjects').body['sobjects']
         end
@@ -83,7 +133,7 @@ module Restforce
       # specified sobject type, or URIs for layouts if the sobject has
       # multiple Record Types.
       #
-      # This resource was introduced in version 28.0.
+      # Only available in version 28.0 and later of the Salesforce API.
       #
       # Examples:
       #  # get the layouts for the sobject
@@ -96,10 +146,12 @@ module Restforce
       #
       # Returns the Hash representation of the describe_layouts result
       def describe_layouts(sobject, layout_id = nil)
-        if layout_id
-          api_get("sobjects/#{sobject.to_s}/describe/layouts/#{layout_id}").body
-        else
-          api_get("sobjects/#{sobject.to_s}/describe/layouts").body
+        version_guard(28.0) do
+          if layout_id
+            api_get("sobjects/#{sobject}/describe/layouts/#{layout_id}").body
+          else
+            api_get("sobjects/#{sobject}/describe/layouts").body
+          end
         end
       end
 
@@ -126,10 +178,53 @@ module Restforce
       #   # => ['Foo Bar Inc.', 'Whizbang Corp']
       #
       # Returns a Restforce::Collection if Restforce.configuration.mashify is true.
-      # Returns an Array of Hash for each record in the result if Restforce.configuration.mashify is false.
+      # Returns an Array of Hash for each record in the result if
+      # Restforce.configuration.mashify is false.
       def query(soql)
-        response = api_get 'query', :q => soql
+        response = api_get 'query', q: soql
         mashify? ? response.body : response.body['records']
+      end
+
+      # Public: Explain a SOQL query execution plan.
+      #
+      # Only available in version 30.0 and later of the Salesforce API.
+      #
+      # soql - A SOQL expression.
+      #
+      # Examples
+      #
+      #   # Find the names of all Accounts
+      #   client.explain('select Name from Account')
+      #
+      # Returns a Hash in the form {:plans => [Array of plan data]}
+      # See: https://www.salesforce.com/us/developer/docs/api_rest/Content/dome_query_expl
+      #      ain.htm
+      def explain(soql)
+        version_guard(30.0) { api_get("query", explain: soql).body }
+      end
+
+      # Public: Executes a SOQL query and returns the result.  Unlike the Query resource,
+      # QueryAll will return records that have been deleted because of a merge or delete.
+      # QueryAll will also return information about archived Task and Event records.
+      #
+      # Only available in version 29.0 and later of the Salesforce API.
+      #
+      # soql - A SOQL expression.
+      #
+      # Examples
+      #
+      #   # Find the names of all Accounts
+      #   client.query_all('select Name from Account').map(&:Name)
+      #   # => ['Foo Bar Inc.', 'Whizbang Corp']
+      #
+      # Returns a Restforce::Collection if Restforce.configuration.mashify is true.
+      # Returns an Array of Hash for each record in the result if
+      # Restforce.configuration.mashify is false.
+      def query_all(soql)
+        version_guard(29.0) do
+          response = api_get 'queryAll', q: soql
+          mashify? ? response.body : response.body['records']
+        end
       end
 
       # Public: Perform a SOSL search
@@ -147,9 +242,10 @@ module Restforce
       #   # => ['GenePoint']
       #
       # Returns a Restforce::Collection if Restforce.configuration.mashify is true.
-      # Returns an Array of Hash for each record in the result if Restforce.configuration.mashify is false.
+      # Returns an Array of Hash for each record in the result if
+      # Restforce.configuration.mashify is false.
       def search(sosl)
-        api_get('search', :q => sosl).body
+        api_get('search', q: sosl).body
       end
 
       # Public: Insert a new record.
@@ -260,9 +356,10 @@ module Restforce
       # Returns true if the sobject was successfully updated.
       # Raises an exception if an error is returned from Salesforce.
       def update!(sobject, attrs)
-        id = attrs.delete(attrs.keys.find { |k| k.to_s.downcase == 'id' })
+        id = attrs.fetch(attrs.keys.find { |k, v| k.to_s.downcase == 'id' }, nil)
         raise ArgumentError, 'Id field missing from attrs.' unless id
-        api_patch "sobjects/#{sobject}/#{id}", attrs
+        attrs_without_id = attrs.reject { |k, v| k.to_s.downcase == "id" }
+        api_patch "sobjects/#{sobject}/#{id}", attrs_without_id
         true
       end
 
@@ -279,7 +376,8 @@ module Restforce
       #
       # Returns true if the record was found and updated.
       # Returns the Id of the newly created record if the record was created.
-      # Returns false if something bad happens.
+      # Returns false if something bad happens (for example if the external ID matches
+      # multiple resources).
       def upsert(*args)
         upsert!(*args)
       rescue *exceptions
@@ -299,10 +397,17 @@ module Restforce
       #
       # Returns true if the record was found and updated.
       # Returns the Id of the newly created record if the record was created.
-      # Raises an exception if an error is returned from Salesforce.
+      # Raises an exception if an error is returned from Salesforce, including the 300
+      # error returned if the external ID provided matches multiple records (in which
+      # case the conflicting IDs can be found by looking at the response on the error)
       def upsert!(sobject, field, attrs)
-        external_id = attrs.delete(attrs.keys.find { |k| k.to_s.downcase == field.to_s.downcase })
-        response = api_patch "sobjects/#{sobject}/#{field.to_s}/#{external_id}", attrs
+        external_id = attrs.
+          fetch(attrs.keys.find { |k, v| k.to_s.downcase == field.to_s.downcase }, nil)
+        attrs_without_field = attrs.
+          reject { |k, v| k.to_s.downcase == field.to_s.downcase }
+        response = api_patch "sobjects/#{sobject}/#{field}/#{URI.encode(external_id)}",
+                             attrs_without_field
+
         (response.body && response.body['id']) ? response.body['id'] : true
       end
 
@@ -349,8 +454,13 @@ module Restforce
       # field   - External ID field to use (default: nil).
       #
       # Returns the Restforce::SObject sobject record.
-      def find(sobject, id, field=nil)
-        api_get(field ? "sobjects/#{sobject}/#{field}/#{id}" : "sobjects/#{sobject}/#{id}").body
+      def find(sobject, id, field = nil)
+        if field
+          url = "sobjects/#{sobject}/#{field}/#{URI.encode(id)}"
+        else
+          url = "sobjects/#{sobject}/#{id}"
+        end
+        api_get(url).body
       end
 
       # Public: Finds a single record and returns select fields.
@@ -359,17 +469,33 @@ module Restforce
       # id      - The id of the record. If field is specified, id should be the id
       #           of the external field.
       # select  - A String array denoting the fields to select.  If nil or empty array
-      #           is passed, all fields are selected.  
+      #           is passed, all fields are selected.
       # field   - External ID field to use (default: nil).
       #
-      def select(sobject, id, select, field=nil)
-        path = field ? "sobjects/#{sobject}/#{field}/#{id}" : "sobjects/#{sobject}/#{id}"
-        path << "?fields=#{select.join(",")}" if select && select.any?
-        
+      def select(sobject, id, select, field = nil)
+        if field
+          path = "sobjects/#{sobject}/#{field}/#{URI.encode(id)}"
+        else
+          path = "sobjects/#{sobject}/#{id}"
+        end
+        path << "?fields=#{select.join(',')}" if select && select.any?
+
         api_get(path).body
       end
 
-
+      # Public: Finds recently viewed items for the logged-in user.
+      #
+      # limit - An optional limit that specifies the maximum number of records to be
+      #         returned.
+      #         If this parameter is not specified, the default maximum number of records
+      #         returned is the maximum number of entries in RecentlyViewed, which is 200
+      #         records per object.
+      #
+      # Returns an array of the recently viewed Restforce::SObject records.
+      def recent(limit = nil)
+        path = limit ? "recent?limit=#{limit}" : "recent"
+        api_get(path).body
+      end
 
 
       # Internal: Returns a path to an api endpoint
@@ -382,7 +508,22 @@ module Restforce
         "/services/data/v#{options[:api_version]}/#{path}"
       end
 
+
       private
+      # Internal: Ensures that the `api_version` set for the Restforce client is at least
+      # the provided version before performing a particular action
+      def version_guard(version)
+        if version.to_f <= options[:api_version].to_f
+          yield
+        else
+          raise APIVersionError, "You must set an `api_version` of at least #{version} " \
+                                 "to use this feature in the Salesforce API. Set the " \
+                                 "`api_version` option when configuring the client - " \
+                                 "see https://github.com/ejholmes/restforce/blob/master" \
+                                 "/README.md#api-versions"
+        end
+      end
+
       # Internal: Errors that should be rescued from in non-bang methods
       def exceptions
         [Faraday::Error::ClientError]

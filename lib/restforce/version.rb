@@ -1,3 +1,3 @@
 module Restforce
-  VERSION = '1.5.2'
+  VERSION = '2.4.2'
 end
